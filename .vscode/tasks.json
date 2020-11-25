@@ -31,6 +31,24 @@
       "problemMatcher": "$msCompile"
     },
     {
+      "label": "pack",
+      "command": "dotnet",
+      "type": "process",
+      "args": ["script", "${workspaceFolder}/build/build.csx", "pack"],
+      "problemMatcher": "$msCompile",
+      "group": {
+        "kind": "build"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "focus": false,
+        "panel": "shared",
+        "showReuseMessage": true,
+        "clear": true
+      }
+    }
+    {
       "label": "test",
       "command": "dotnet",
       "type": "process",
