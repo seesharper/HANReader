@@ -1,0 +1,7 @@
+{
+  "dotnetCoreExplorer.searchpatterns": "**/bin/Debug/netcoreapp3.1/HeatKeeper.Server.WebApi.Tests.dll",
+  "editor.quickSuggestions": {
+    "other": true,
+    "strings": true
+  }
+}
