@@ -1,11 +1,9 @@
-using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
-using HANReader.Core;
-using Xunit;
-
 using System;
 using System.Text.Json;
+using System.Threading.Tasks;
+using HANReader.Core;
+using Newtonsoft.Json;
+using Xunit;
 
 namespace HANReader.Tests
 {
@@ -16,18 +14,33 @@ namespace HANReader.Tests
         [Fact]
         public async Task ShouldReadFromStream()
         {
-            var bytes = ByteHelper.CreateByteArray(fullFrame);
-            var stream = new MemoryStream();
-            stream.Write(bytes);
 
-            stream.Position = 0;
+            var firstframe = ByteHelper.CreateByteArray(fullFrame);
+            var secondFrame = ByteHelper.CreateByteArray(fullFrame);
+            TestStream testStream = new TestStream();
+            var writeTask = Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                //testStream.Write(firstframe.ToArray());
+                testStream.Write(firstframe);
+                await Task.Delay(500);
+                testStream.Write(secondFrame);
+                await Task.Delay(500);
+                testStream.Write(Array.Empty<byte>());
+            });
+
+
+
+
+
             var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
 
-            await reader.StartAsync(stream, frame =>
+            var readerTask = reader.StartAsync(testStream, frame =>
             {
-                var json = JsonSerializer.Serialize(frame, new JsonSerializerOptions() { WriteIndented = true, });
-                Console.WriteLine(json);
+                Console.WriteLine(JsonConvert.SerializeObject(frame));
             });
+
+            await Task.WhenAll(writeTask, readerTask);
         }
     }
 }

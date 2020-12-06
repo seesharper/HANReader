@@ -12,9 +12,11 @@ Step test = () => DotNet.Test();
 [StepDescription("Creates the NuGet packages")]
 Step pack = () =>
 {
-    test();
-    testcoverage();
-    DotNet.Pack();
+    //  test();
+    //  testcoverage();
+    //DotNet.Pack();
+    var sourceProject = BuildContext.SourceProjects.Single(sp => Path.GetFileNameWithoutExtension(sp) == "HANReader");
+    Command.Execute("dotnet", $"publish {sourceProject} -c release -o {BuildContext.GitHubArtifactsFolder}");
 };
 
 [DefaultStep]

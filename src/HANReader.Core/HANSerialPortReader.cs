@@ -48,7 +48,7 @@ namespace HANReader.Core
         {
             if (frameReader.TryReadFrame(ref buffer, out var frame2))
             {
-                var positionOfNextPossibleFrame = buffer.GetPosition(frame2.Header.FrameSize + 2);
+                var positionOfNextPossibleFrame = buffer.GetPosition(frame2.Header.StartPosition - 1 + frame2.Header.FrameSize + 2);
                 buffer = buffer.Slice(positionOfNextPossibleFrame);
             }
             frame = frame2;

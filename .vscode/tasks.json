@@ -47,7 +47,7 @@
         "showReuseMessage": true,
         "clear": true
       }
-    }
+    },
     {
       "label": "test",
       "command": "dotnet",
