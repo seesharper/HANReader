@@ -21,5 +21,6 @@
     <PublishTrimmed>true</PublishTrimmed>
     <PublishReadyToRun>false</PublishReadyToRun>
     <AssemblyName>hanreader-linux-arm</AssemblyName>
+    <IsPublishable>true</IsPublishable>
   </PropertyGroup>
 </Project>

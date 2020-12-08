@@ -1,27 +1,26 @@
-#load "nuget:Dotnet.Build, 0.11.1"
+#load "nuget:Dotnet.Build, 0.12.0"
 #load "nuget:dotnet-steps, 0.0.2"
 
-BuildContext.CodeCoverageThreshold = 80;
+BuildContext.CodeCoverageThreshold = 70;
 
 [StepDescription("Runs the tests with test coverage")]
-Step testcoverage = () => DotNet.TestWithCodeCoverage();
+Step codecoverage = () => DotNet.TestWithCodeCoverage();
 
 [StepDescription("Runs all the tests for all target frameworks")]
 Step test = () => DotNet.Test();
 
-[StepDescription("Creates the NuGet packages")]
+[StepDescription("Creates all artifacts")]
 Step pack = () =>
 {
-    //  test();
-    //  testcoverage();
-    //DotNet.Pack();
-    var sourceProject = BuildContext.SourceProjects.Single(sp => Path.GetFileNameWithoutExtension(sp) == "HANReader");
-    Command.Execute("dotnet", $"publish {sourceProject} -c release -o {BuildContext.GitHubArtifactsFolder}");
+    test();
+    codecoverage();
+    DotNet.Pack();
+    DotNet.Publish();
 };
 
 [DefaultStep]
-[StepDescription("Deploys packages if we are on a tag commit in a secure environment.")]
-AsyncStep deploy = async () =>
+[StepDescription("Ships all artifacts")]
+AsyncStep ship = async () =>
 {
     pack();
     await Artifacts.Deploy();
@@ -29,4 +28,3 @@ AsyncStep deploy = async () =>
 
 await StepRunner.Execute(Args);
 return 0;
-
