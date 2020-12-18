@@ -32,7 +32,9 @@ namespace HANReader.Core
             var deviation = deviation_high_byte << 8 | deviation_low_byte;
             reader.TryRead(out var clock_status);
 
-            return new DateTime(year, month, dayOfMonth, hour, minute, second, DateTimeKind.Local).ToUniversalTime();
+            var dateTime = new DateTime(year, month, dayOfMonth, hour, minute, second);
+            return dateTime;
+            //return new DateTime(year, month, dayOfMonth, hour, minute, second, DateTimeKind.Local).ToUniversalTime();
         }
 
     }
