@@ -22,5 +22,6 @@
     <PublishReadyToRun>false</PublishReadyToRun>
     <AssemblyName>hanreader-linux-arm</AssemblyName>
     <IsPublishable>true</IsPublishable>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 </Project>
