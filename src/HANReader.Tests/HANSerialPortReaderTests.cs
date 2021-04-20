@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using HANReader.Core;
@@ -39,6 +40,66 @@ namespace HANReader.Tests
             {
                 Console.WriteLine(JsonConvert.SerializeObject(frame));
             });
+
+            await Task.WhenAll(writeTask, readerTask);
+        }
+
+
+        [Fact]
+        public async Task ShouldHandleGettinIncompleteFrame()
+        {
+            var fullFrameBytes = ByteHelper.CreateByteArray(fullFrame);
+
+            var secondPart = fullFrameBytes[10..];
+
+            TestStream testStream = new TestStream();
+
+            var writeTask = Task.Run(async () =>
+            {
+                var firstPart = fullFrameBytes[0..10];
+                await Task.Delay(500);
+                testStream.Write(firstPart, 0, firstPart.Length);
+                await Task.Delay(500);
+                testStream.Write(secondPart, 0, secondPart.Length);
+                await Task.Delay(500);
+                testStream.Write(Array.Empty<byte>());
+            });
+
+            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
+
+            var readerTask = reader.StartAsync(testStream, frame =>
+           {
+               Console.WriteLine(JsonConvert.SerializeObject(frame));
+           });
+
+            await Task.WhenAll(writeTask, readerTask);
+        }
+
+        [Fact]
+        public async Task ShouldHandleRubbishAndThenCompleteFrame()
+        {
+            var rubbish = new byte[] { 1, 2, 3, 4 };
+            var fullFrameBytes = ByteHelper.CreateByteArray(fullFrame);
+            TestStream testStream = new();
+
+            var writeTask = Task.Run(async () =>
+            {
+                await Task.Delay(500);
+                testStream.Write(rubbish, 0, rubbish.Length);
+                await Task.Delay(500);
+                testStream.Write(fullFrameBytes, 0, fullFrameBytes.Length);
+                await Task.Delay(500);
+                testStream.Write(fullFrameBytes, 0, fullFrameBytes.Length);
+                await Task.Delay(500);
+                testStream.Write(Array.Empty<byte>());
+            });
+
+            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
+
+            var readerTask = reader.StartAsync(testStream, frame =>
+           {
+               Console.WriteLine(JsonConvert.SerializeObject(frame));
+           });
 
             await Task.WhenAll(writeTask, readerTask);
         }
