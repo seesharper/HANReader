@@ -48,7 +48,7 @@ namespace HANReader.Core
         private bool TryReadFrame(ref ReadOnlySequence<byte> buffer, out Frame frame)
         {
             var bufferString = String.Join(",", buffer.ToArray().Select(p => p.ToString()).ToArray());
-            Console.WriteLine($"Trying to read buffer ({bufferString})");
+            Console.Error.WriteLine($"Trying to read buffer ({bufferString})");
             if (frameReader.TryReadFrame(ref buffer, out var frame2))
             {
                 var positionOfNextPossibleFrame = buffer.GetPosition(frame2.Header.StartPosition - 1 + frame2.Header.FrameSize + 2);
@@ -56,7 +56,7 @@ namespace HANReader.Core
             }
             else
             {
-                Console.WriteLine($"Could not read frame ({bufferString})");
+                Console.Error.WriteLine($"Could not read frame ({bufferString})");
             }
             frame = frame2;
             return frame2 != Frame.InvalidFrame;
