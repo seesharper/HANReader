@@ -49,17 +49,29 @@ namespace HANReader.Core
         {
             var bufferString = String.Join(",", buffer.ToArray().Select(p => p.ToString()).ToArray());
             Console.Error.WriteLine($"Trying to read buffer ({bufferString})");
-            if (frameReader.TryReadFrame(ref buffer, out var frame2))
+            var readStatus = frameReader.ReadFrame(ref buffer, out var f);
+            if (readStatus == ReadStatus.InvalidChecksum)
             {
-                var positionOfNextPossibleFrame = buffer.GetPosition(frame2.Header.StartPosition - 1 + frame2.Header.FrameSize + 2);
+
+            }
+
+            if (readStatus == ReadStatus.NotFound)
+            {
+                frame = Frame.InvalidFrame;
+                return false;
+            }
+
+            if (readStatus == ReadStatus.Complete)
+            {
+                var positionOfNextPossibleFrame = buffer.GetPosition(f.Header.StartPosition - 1 + f.Header.FrameSize + 2);
                 buffer = buffer.Slice(positionOfNextPossibleFrame);
             }
             else
             {
                 Console.Error.WriteLine($"Could not read frame ({bufferString})");
             }
-            frame = frame2;
-            return frame2 != Frame.InvalidFrame;
+            frame = f;
+            return f != Frame.InvalidFrame;
         }
     }
 }

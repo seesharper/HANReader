@@ -21,6 +21,30 @@ namespace HANReader.Core.Models
             Payload = payload;
         }
     }
+
+
+
+
+    public enum ReadStatus
+    {
+        /// <summary>
+        /// All the bytes have been read and verified.
+        /// </summary>
+        Complete,
+
+        /// <summary>
+        /// All the bytes have been read, but the checksum is invalid.
+        /// </summary>
+        InvalidChecksum,
+
+        /// <summary>
+        /// There are still bytes to be read of the stream.
+        /// </summary>
+        InComplete,
+
+        // Nothing to read or we did not find the start flag.
+        NotFound
+    }
 }
 
 

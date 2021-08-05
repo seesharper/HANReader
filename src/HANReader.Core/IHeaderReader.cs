@@ -1,12 +1,14 @@
 ﻿using System.Buffers;
+using HANReader.Core.Models;
 
 namespace HANReader.Core
 {
     public interface IHeaderReader
     {
-        bool TryReadHeader(ref SequenceReader<byte> sequenceReader, out Header header);
+        ReadStatus TryReadHeader(ref SequenceReader<byte> sequenceReader, out Header header);
     }
-}namespace HANReader.Core
+}
+namespace HANReader.Core
 {
 
 
@@ -14,8 +16,10 @@ namespace HANReader.Core
     {
         public static Header InvalidHeader = new Header();
 
+
         public readonly long FrameSize;
         public readonly long Length;
+
         public readonly long StartPosition;
 
         public bool IsValid

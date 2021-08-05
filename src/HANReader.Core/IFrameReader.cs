@@ -5,6 +5,6 @@ namespace HANReader.Core
 {
     public interface IFrameReader
     {
-        bool TryReadFrame(ref ReadOnlySequence<byte> buffer, out Frame frame);
+        ReadStatus ReadFrame(ref ReadOnlySequence<byte> buffer, out Frame frame);
     }
 }

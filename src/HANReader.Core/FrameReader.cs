@@ -4,8 +4,6 @@ using HANReader.Core.Models;
 
 namespace HANReader.Core
 {
-
-
     public class FrameReader : IFrameReader
     {
         private const int FRAME_CHECK_SEQUENCE_LENGTH = 2;
@@ -23,33 +21,41 @@ namespace HANReader.Core
             this.payLoadReader = payLoadReader;
         }
 
-        public bool TryReadFrame(ref ReadOnlySequence<byte> buffer, out Frame frame)
+        public ReadStatus ReadFrame(ref ReadOnlySequence<byte> buffer, out Frame frame)
         {
             var sequenceReader = new SequenceReader<byte>(buffer);
 
             frame = Frame.InvalidFrame;
 
-            if (!headerReader.TryReadHeader(ref sequenceReader, out var header))
+            var headerReadResult = headerReader.TryReadHeader(ref sequenceReader, out var header);
+
+            if (headerReadResult == ReadStatus.InvalidChecksum)
             {
-                return false;
+                buffer = buffer.Slice(sequenceReader.Consumed);
             }
+
+            // if (!headerReader.TryReadHeader(ref sequenceReader, out var header))
+            // {
+            //     // Note: Might have invalid checksum
+            //     return ReadStatus.InComplete;
+            // }
 
             var frameSizeIncludingOpeningAndEndingFlags = header.FrameSize + 2;
 
-            // Ensure that we have a complete frame.
             if (sequenceReader.Remaining < (frameSizeIncludingOpeningAndEndingFlags - sequenceReader.Consumed))
             {
-                return false;
+                return ReadStatus.InComplete;
             }
 
             /// Check
             var frameBody = sequenceReader.Sequence.Slice(header.StartPosition, header.FrameSize - FRAME_CHECK_SEQUENCE_LENGTH).ToArray();
-            var frameCheckSequenceBytes = sequenceReader.Sequence.Slice((header.StartPosition + header.FrameSize) - 2, FRAME_CHECK_SEQUENCE_LENGTH).ToArray();
+            var frameCheckSequenceBytes = sequenceReader.Sequence.Slice(header.StartPosition + header.FrameSize - FRAME_CHECK_SEQUENCE_LENGTH, FRAME_CHECK_SEQUENCE_LENGTH).ToArray();
             var frameCheckSequence = (ushort)(frameCheckSequenceBytes[1] << 8 | frameCheckSequenceBytes[0]);
 
             if (!cyclicRedundancyChecker.Check(frameCheckSequence, frameBody))
             {
-                return false;
+                buffer = buffer.Slice(sequenceReader.Consumed);
+                return ReadStatus.InvalidChecksum;
             }
 
             // Advance past the LLC PDU section. Nothing relevant here.
@@ -74,7 +80,7 @@ namespace HANReader.Core
             // Advance past the frame check sequence bytes and the end flag;
             sequenceReader.Advance(3);
 
-            return true;
+            return ReadStatus.Complete;
         }
     }
 }

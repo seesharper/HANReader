@@ -1,5 +1,7 @@
 using System;
 using System.Buffers;
+using System.IO.Pipelines;
+using HANReader.Core.Models;
 
 namespace HANReader.Core
 {
@@ -18,21 +20,20 @@ namespace HANReader.Core
             this.cyclicRedundancyChecker = cyclicRedundancyChecker;
         }
 
-        public bool TryReadHeader(ref SequenceReader<byte> sequenceReader, out Header header)
+        public ReadStatus TryReadHeader(ref SequenceReader<byte> sequenceReader, out Header header)
         {
             header = Header.InvalidHeader;
 
             if (!sequenceReader.TryAdvanceTo(START_FLAG))
             {
-                return false;
+                return ReadStatus.NotFound;
             }
 
             var headerStartPosition = sequenceReader.Consumed;
 
             if (sequenceReader.Remaining < 2)
             {
-                // We don't have enough bytes to read the frame format field.
-                return false;
+                return ReadStatus.InComplete;
             }
 
             sequenceReader.TryRead(out var firstFrameFormatByte);
@@ -47,13 +48,13 @@ namespace HANReader.Core
 
             if (!TryReadPastAddress(ref sequenceReader) || !TryReadPastAddress(ref sequenceReader))
             {
-                return false;
+                return ReadStatus.InComplete;
             }
 
             // Ensure that we have at least the control byte and the two bytes containing the check sum
             if (sequenceReader.Remaining < 3)
             {
-                return false;
+                return ReadStatus.InComplete;
             }
 
             // Advance past the control byte
@@ -67,30 +68,30 @@ namespace HANReader.Core
             var headerBody = sequenceReader.Sequence.Slice(headerStartPosition, (sequenceReader.Consumed - headerStartPosition) - 2).ToArray();
             if (!cyclicRedundancyChecker.Check(headerCheckSequence, headerBody))
             {
-                return false;
+                return ReadStatus.InvalidChecksum;
             }
 
             var frameSizeIncludingOpeningAndEndingFlags = frameSize + 2;
 
             // Ensure that we have a complete frame.
-            if (sequenceReader.Remaining < (frameSizeIncludingOpeningAndEndingFlags - sequenceReader.Consumed))
-            {
-                return false;
-            }
+            // if (sequenceReader.Remaining < (frameSizeIncludingOpeningAndEndingFlags - sequenceReader.Consumed))
+            // {
+            //     return false;
+            // }
 
 
-            var frameBody = sequenceReader.Sequence.Slice(headerStartPosition, frameSize - 2).ToArray();
-            var frameCheckSequenceBytes = sequenceReader.Sequence.Slice((headerStartPosition - 2) + frameSize, 2).ToArray();
-            var frameCheckSequence = (ushort)(frameCheckSequenceBytes[1] << 8 | frameCheckSequenceBytes[0]);
+            // var frameBody = sequenceReader.Sequence.Slice(headerStartPosition, frameSize - 2).ToArray();
+            // var frameCheckSequenceBytes = sequenceReader.Sequence.Slice((headerStartPosition - 2) + frameSize, 2).ToArray();
+            // var frameCheckSequence = (ushort)(frameCheckSequenceBytes[1] << 8 | frameCheckSequenceBytes[0]);
 
-            if (!cyclicRedundancyChecker.Check(frameCheckSequence, frameBody))
-            {
-                return false;
-            }
+            // if (!cyclicRedundancyChecker.Check(frameCheckSequence, frameBody))
+            // {
+            //     return false;
+            // }
 
             var headerSize = sequenceReader.Consumed - headerStartPosition;
             header = new Header(frameSize, headerStartPosition, headerSize);
-            return true;
+            return ReadStatus.Complete;
         }
 
         private bool TryReadPastAddress(ref SequenceReader<byte> sequenceReader)
