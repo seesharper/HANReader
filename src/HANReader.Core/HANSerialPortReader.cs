@@ -52,7 +52,8 @@ namespace HANReader.Core
             var readStatus = frameReader.ReadFrame(ref buffer, out var f);
             if (readStatus == ReadStatus.InvalidChecksum)
             {
-
+                frame = Frame.InvalidFrame;
+                return false;
             }
 
             if (readStatus == ReadStatus.NotFound)

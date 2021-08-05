@@ -16,24 +16,18 @@ namespace HANReader.Tests
         [Fact]
         public async Task ShouldReadFromStream()
         {
-
             var firstframe = ByteHelper.CreateByteArray(fullFrame);
             var secondFrame = ByteHelper.CreateByteArray(fullFrame);
             TestStream testStream = new TestStream();
             var writeTask = Task.Run(async () =>
             {
                 await Task.Delay(500);
-                //testStream.Write(firstframe.ToArray());
                 testStream.Write(firstframe);
                 await Task.Delay(500);
                 testStream.Write(secondFrame);
                 await Task.Delay(500);
                 testStream.Write(Array.Empty<byte>());
             });
-
-
-
-
 
             var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
 

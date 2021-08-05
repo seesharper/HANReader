@@ -32,7 +32,16 @@ namespace HANReader.Core
             if (headerReadResult == ReadStatus.InvalidChecksum)
             {
                 buffer = buffer.Slice(sequenceReader.Consumed);
+                return ReadStatus.InvalidChecksum;
             }
+
+            if (headerReadResult == ReadStatus.NotFound)
+            {
+                buffer = buffer.Slice(sequenceReader.Length);
+                return ReadStatus.NotFound;
+            }
+
+
 
             // if (!headerReader.TryReadHeader(ref sequenceReader, out var header))
             // {
