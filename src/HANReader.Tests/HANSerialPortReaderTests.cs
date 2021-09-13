@@ -1,7 +1,5 @@
 using System;
 using System.Buffers;
-using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 using HANReader.Core;
 using Newtonsoft.Json;
@@ -18,7 +16,7 @@ namespace HANReader.Tests
         {
             var firstframe = ByteHelper.CreateByteArray(fullFrame);
             var secondFrame = ByteHelper.CreateByteArray(fullFrame);
-            TestStream testStream = new TestStream();
+            var testStream = new TestStream();
             var writeTask = Task.Run(async () =>
             {
                 await Task.Delay(500);
