@@ -7,6 +7,6 @@
     <DebugType>embedded</DebugType>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.IO.PipeLines" Version="5.0.1" />
+    <PackageReference Include="System.IO.PipeLines" Version="6.0.0-rc.1.21451.13 " />
   </ItemGroup>
 </Project>

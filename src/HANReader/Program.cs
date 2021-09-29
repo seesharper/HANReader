@@ -26,7 +26,7 @@ namespace HANReader
 
             app.OnExecuteAsync(async token =>
             {
-                var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
+                var reader = new HANStreamReader(Console.Error);
                 var serialPortName = serialPortNameArgument.Value;
                 var baudRate = baudRateOption.HasValue() ? baudRateOption.ParsedValue : 2400;
                 var parity = parityOption.HasValue() ? Enum.Parse<Parity>(parityOption.ParsedValue, ignoreCase: true) : Parity.None;
@@ -34,7 +34,8 @@ namespace HANReader
                 var stopBits = stopbitsOption.HasValue() ? Enum.Parse<StopBits>(stopbitsOption.ParsedValue) : StopBits.One;
                 var serialPort = new SerialPort(serialPortName, baudRate, parity, databits, stopBits);
                 serialPort.Open();
-                await reader.StartAsync(serialPort.BaseStream, (frame) =>
+
+                await reader.StartAsync(serialPort.BaseStream, async (frame) =>
                 {
                     var json = JsonConvert.SerializeObject(frame);
                     Console.WriteLine(json);

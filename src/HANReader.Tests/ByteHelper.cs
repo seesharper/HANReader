@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 
 namespace HANReader.Tests
@@ -11,7 +10,7 @@ namespace HANReader.Tests
             byte[] bytes = new byte[stringBytes.Length];
             for (int i = 0; i < stringBytes.Length; i++)
             {
-                bytes[i] = Byte.Parse(stringBytes[i], NumberStyles.HexNumber);
+                bytes[i] = byte.Parse(stringBytes[i], NumberStyles.HexNumber);
             }
 
             return bytes;

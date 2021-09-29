@@ -1,15 +1,142 @@
 using System;
 using System.Buffers;
+using System.IO;
+using System.IO.Pipelines;
 using System.Threading.Tasks;
+using FluentAssertions;
 using HANReader.Core;
+using HANReader.Core.Models;
 using Newtonsoft.Json;
 using Xunit;
 
 namespace HANReader.Tests
 {
+    public class StructConverter : System.Text.Json.Serialization.JsonConverter<Struct[]>
+    {
+        public override Struct[] Read(ref System.Text.Json.Utf8JsonReader reader, Type typeToConvert, System.Text.Json.JsonSerializerOptions options)
+        {
+
+            throw new NotImplementedException();
+        }
+
+        public override void Write(System.Text.Json.Utf8JsonWriter writer, Struct[] value, System.Text.Json.JsonSerializerOptions options)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+
     public class HANSerialPortReaderTests
     {
-        private string fullFrame = "AA 7E A0 79 01 02 01 10 80 93 E6 E7 00 0F 40 00 00 00 09 0C 07 E4 08 0B 02 0D 36 28 FF 80 00 00 02 0D 09 07 4B 46 4D 5F 30 30 31 09 10 36 39 37 30 36 33 31 34 30 33 30 38 32 38 30 39 09 08 4D 41 33 30 34 48 33 45 06 00 00 08 2D 06 00 00 00 00 06 00 00 00 DA 06 00 00 00 00 06 00 00 07 86 06 00 00 1D 25 06 00 00 1A D3 06 00 00 09 74 06 00 00 00 00 06 00 00 09 6F 88 8B 7E";
+        private string fullFrame = "7E A0 79 01 02 01 10 80 93 E6 E7 00 0F 40 00 00 00 09 0C 07 E4 08 0B 02 0D 36 28 FF 80 00 00 02 0D 09 07 4B 46 4D 5F 30 30 31 09 10 36 39 37 30 36 33 31 34 30 33 30 38 32 38 30 39 09 08 4D 41 33 30 34 48 33 45 06 00 00 08 2D 06 00 00 00 00 06 00 00 00 DA 06 00 00 00 00 06 00 00 07 86 06 00 00 1D 25 06 00 00 1A D3 06 00 00 09 74 06 00 00 00 00 06 00 00 09 6F 88 8B 7E";
+
+        //------------------------------------------------------------------------👇----------------
+        private string fullFrameWithInvalidHeaderChecksum = "7E A0 79 01 02 01 10 FF 93 E6 E7 00 0F 40 00 00 00 09 0C 07 E4 08 0B 02 0D 36 28 FF 80 00 00 02 0D 09 07 4B 46 4D 5F 30 30 31 09 10 36 39 37 30 36 33 31 34 30 33 30 38 32 38 30 39 09 08 4D 41 33 30 34 48 33 45 06 00 00 08 2D 06 00 00 00 00 06 00 00 00 DA 06 00 00 00 00 06 00 00 07 86 06 00 00 1D 25 06 00 00 1A D3 06 00 00 09 74 06 00 00 00 00 06 00 00 09 6F 88 8B 7E";
+
+        [Fact]
+        public async Task ReadOnlySequence()
+        {
+
+
+
+            var segment = new MemorySegment<byte>(ByteHelper.CreateByteArray("10 20 30 40 50"));
+
+            var sequence = new ReadOnlySequence<byte>(segment, 0, segment, 5);
+
+
+            var stream = new SingleByteStream(ByteHelper.CreateByteArray("10 20 30 40 50"));
+
+            PipeReader reader = PipeReader.Create(stream);
+
+            ReadResult result = await reader.ReadAsync();
+            var buffer = result.Buffer;
+            var startPosition = buffer.Start;
+
+            buffer = buffer.Slice(0, 1);
+
+            reader.AdvanceTo(buffer.Start, buffer.End);
+
+            result = await reader.ReadAsync();
+            buffer = result.Buffer;
+
+            sequence = sequence.Slice(2);
+
+
+            //pipeReader.AdvanceTo(sequence.Start, sequence.End)
+            // Means tha we have consumed
+
+            // BufferSegment
+            // //var startAndEndSeqment = new ReadOnlySequenceSegment<byte>(ByteHelper.CreateByteArray("10 20 30 40 50"));
+
+
+            // var sequence = new ReadOnlySequence<byte>(startAndEndSeqment, 0, startAndEndSeqment, 4);
+
+            //sequence = sequence.Slice(2, sequence.End);
+        }
+
+
+
+
+        [Fact]
+        public async Task ShouldHandleFullFrame()
+        {
+            var firstframe = ByteHelper.CreateByteArray(fullFrame);
+            var testStream = new MemoryStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task ShouldHandleTwoFullFrames()
+        {
+            var firstframe = ByteHelper.CreateByteArray($"{fullFrame} {fullFrame}");
+            var testStream = new SingleByteStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task ShouldHandleStartingOnEndFlag()
+        {
+            var firstframe = ByteHelper.CreateByteArray($"7E {fullFrame}");
+            var testStream = new SingleByteStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task ShouldHandleInvalidHeaderChecksum()
+        {
+            var firstframe = ByteHelper.CreateByteArray(fullFrameWithInvalidHeaderChecksum);
+            var testStream = new SingleByteStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(0);
+        }
+
 
         [Fact]
         public async Task ShouldReadFromStream()
@@ -27,9 +154,12 @@ namespace HANReader.Tests
                 testStream.Write(Array.Empty<byte>());
             });
 
-            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
+            var r = new HANStreamReader(Console.Error);
 
-            var readerTask = reader.StartAsync(testStream, frame =>
+
+            //var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
+
+            var readerTask = r.StartAsync(testStream, async frame =>
             {
                 Console.WriteLine(JsonConvert.SerializeObject(frame));
             });
@@ -117,6 +247,29 @@ namespace HANReader.Tests
             var reader = new SequenceReader<byte>(sequence);
             var couldReaderHeader = headerReader.TryReadHeader(ref reader, out var header);
 
+        }
+    }
+
+
+    //https://www.stevejgordon.co.uk/creating-a-readonlysequence-from-array-data-in-dotnet
+
+    internal class MemorySegment<T> : ReadOnlySequenceSegment<T>
+    {
+        public MemorySegment(ReadOnlyMemory<T> memory)
+        {
+            Memory = memory;
+        }
+
+        public MemorySegment<T> Append(ReadOnlyMemory<T> memory)
+        {
+            var segment = new MemorySegment<T>(memory)
+            {
+                RunningIndex = RunningIndex + Memory.Length
+            };
+
+            Next = segment;
+
+            return segment;
         }
     }
 }

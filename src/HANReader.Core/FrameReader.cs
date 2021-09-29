@@ -91,5 +91,9 @@ namespace HANReader.Core
 
             return ReadStatus.Complete;
         }
+
+
+
+        
     }
 }
