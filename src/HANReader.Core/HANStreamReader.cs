@@ -56,7 +56,6 @@ namespace HANReader.Core
                 if (frames.Count > 0)
                 {
                     await processFrame(frames.ToArray());
-
                 }
 
                 reader.AdvanceTo(buffer.Start, buffer.End);
@@ -65,7 +64,6 @@ namespace HANReader.Core
                 {
                     break;
                 }
-
             }
         }
     }
@@ -105,13 +103,15 @@ namespace HANReader.Core
                     {
                         if (nextByte == 0x7E)
                         {
-                            buffer = buffer.Slice(sequenceReader.Consumed);
+                            //buffer = buffer.Slice(sequenceReader.Consumed);
                             continue;
                             //continue;
                         }
                     }
 
                     var headerStartPosition = sequenceReader.Consumed;
+                    var startFlagPosition = sequenceReader.Consumed - 1;
+
 
                     if (sequenceReader.Remaining < 2)
                     {
@@ -159,7 +159,6 @@ namespace HANReader.Core
                     if (!cyclicRedundancyChecker.Check(headerCheckSequence, headerBody))
                     {
                         _log("Invalid header checksum");
-                        buffer = buffer.Slice(sequenceReader.Consumed);
                         continue;
                     }
 
@@ -167,7 +166,7 @@ namespace HANReader.Core
 
                     var frameSizeIncludingOpeningAndEndingFlags = frameSize + 2;
 
-                    if (sequenceReader.Remaining < (frameSizeIncludingOpeningAndEndingFlags - sequenceReader.Consumed))
+                    if (sequenceReader.Remaining < (frameSizeIncludingOpeningAndEndingFlags - sequenceReader.Consumed + startFlagPosition))
                     {
                         // Now enough bytes read to read a whole frame
                         break;
@@ -185,7 +184,7 @@ namespace HANReader.Core
                         // The frame body has an invalid checksum so we just slice the
                         // buffer down to what we have already consumed.
                         _log("Invalid frame checksum");
-                        buffer = buffer.Slice(sequenceReader.Consumed);
+                        //buffer = buffer.Slice(sequenceReader.Consumed);
                         continue;
                     }
 
@@ -209,6 +208,7 @@ namespace HANReader.Core
 
                     //Advance past the frame check sequence and the end flag (7E)
                     sequenceReader.Advance(3);
+                    //buffer = buffer.Slice(sequenceReader.Consumed);
                     totallyConsumed = sequenceReader.Consumed;
                     frames.Add(new Frame2(timeStamp, frameSize, payload));
                 }

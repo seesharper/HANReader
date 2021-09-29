@@ -108,9 +108,57 @@ namespace HANReader.Tests
         }
 
         [Fact]
+        public async Task ShouldHandleTwoFullFramesInSingleBuffer()
+        {
+            var firstframe = ByteHelper.CreateByteArray($"{fullFrame} {fullFrame}");
+            var testStream = new MemoryStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(2);
+        }
+
+        [Fact]
+        public async Task ShouldHandleFrameWithInvalidChecksumFollowedByValidFrame()
+        {
+            var firstframe = ByteHelper.CreateByteArray($"{fullFrameWithInvalidHeaderChecksum} {fullFrame}");
+            var testStream = new MemoryStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(1);
+        }
+
+
+        [Fact]
+        public async Task ShouldHandleRubbishBeforeStartFlag()
+        {
+            var firstframe = ByteHelper.CreateByteArray($"AA AA AA {fullFrame}");
+            var testStream = new SingleByteStream(firstframe);
+            var streamReader = new HANStreamReader(Console.Error);
+            int totalFrames = 0;
+            await streamReader.StartAsync(testStream, async (frames) =>
+            {
+                totalFrames += frames.Length;
+            });
+
+            totalFrames.Should().Be(1);
+        }
+
+
+
+        [Fact]
         public async Task ShouldHandleStartingOnEndFlag()
         {
-            var firstframe = ByteHelper.CreateByteArray($"7E {fullFrame}");
+            var firstframe = ByteHelper.CreateByteArray($"AA AA AA 7E {fullFrame}");
             var testStream = new SingleByteStream(firstframe);
             var streamReader = new HANStreamReader(Console.Error);
             int totalFrames = 0;
