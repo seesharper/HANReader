@@ -92,21 +92,15 @@ namespace HANReader.Core
             {
                 if (!sequenceReader.TryAdvanceTo(START_FLAG))
                 {
-                    _log($"Unable to find startflag({START_FLAG}) in buffer");
                     sequenceReader.AdvanceToEnd();
                 }
                 else
                 {
                     // If the next byte is also equal to START_FLAG it means that
                     // we read the previous byte was actually the end flag
-                    if (sequenceReader.TryPeek(out var nextByte))
+                    if (sequenceReader.TryPeek(out var nextByte) && nextByte == START_FLAG)
                     {
-                        if (nextByte == 0x7E)
-                        {
-                            //buffer = buffer.Slice(sequenceReader.Consumed);
-                            continue;
-                            //continue;
-                        }
+                        continue;
                     }
 
                     var headerStartPosition = sequenceReader.Consumed;
@@ -208,7 +202,6 @@ namespace HANReader.Core
 
                     //Advance past the frame check sequence and the end flag (7E)
                     sequenceReader.Advance(3);
-                    //buffer = buffer.Slice(sequenceReader.Consumed);
                     totallyConsumed = sequenceReader.Consumed;
                     frames.Add(new Frame2(timeStamp, frameSize, payload));
                 }
@@ -219,9 +212,9 @@ namespace HANReader.Core
             return frames.AsReadOnly();
         }
 
-        private bool TryReadAddress(ref SequenceReader<byte> sequenceReader, out byte[] addressBytes)
+        private static bool TryReadAddress(ref SequenceReader<byte> sequenceReader, out byte[] addressBytes)
         {
-            List<byte> bytesRead = new List<byte>();
+            var bytesRead = new List<byte>();
             while (sequenceReader.TryRead(out var addressByte))
             {
                 bytesRead.Add(addressByte);
@@ -236,7 +229,7 @@ namespace HANReader.Core
             return bytesRead.Count > 0;
         }
 
-        private DateTime ReadTimestamp(ref SequenceReader<byte> reader)
+        private static DateTime ReadTimestamp(ref SequenceReader<byte> reader)
         {
             // Advance past the length as it is always 12 bytes here.
             //reader.TryRead(out var length);
