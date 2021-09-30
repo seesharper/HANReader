@@ -8,19 +8,19 @@ using HANReader.Core.Models;
 
 namespace HANReader.Core
 {
-    public class HANStreamReader
+    public class StreamReader
     {
         private readonly Action<string> _log;
 
-        private readonly HANSequenceReader _HANSequenceReader;
+        private readonly FrameReader _HANSequenceReader;
 
-        public HANStreamReader(TextWriter log)
+        public StreamReader(TextWriter log)
         {
-            _log = (message) => log.WriteLine($"{nameof(HANStreamReader)}: {message}");
-            _HANSequenceReader = new HANSequenceReader(log);
+            _log = (message) => log.WriteLine($"{nameof(StreamReader)}: {message}");
+            _HANSequenceReader = new FrameReader(log);
         }
 
-        public async Task StartAsync(Stream stream, Func<Frame2[], Task> processFrame = null)
+        public async Task StartAsync(Stream stream, Func<Frame[], Task> processFrame = null)
         {
             PipeReader reader = PipeReader.Create(stream);
 

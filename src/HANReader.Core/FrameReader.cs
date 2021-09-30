@@ -8,7 +8,7 @@ using HANReader.Core.Models;
 
 namespace HANReader.Core
 {
-    public class HANSequenceReader
+    public class FrameReader
     {
         private const int CHECK_SEQUENCE_LENGTH = 2;
 
@@ -16,16 +16,16 @@ namespace HANReader.Core
 
         private readonly ICyclicRedundancyChecker cyclicRedundancyChecker = new Crc16CyclicRedundancyChecker();
 
-        public HANSequenceReader(TextWriter log)
+        public FrameReader(TextWriter log)
         {
-            _log = (message) => log.WriteLine($"{nameof(HANSequenceReader)}: {message}");
+            _log = (message) => log.WriteLine($"{nameof(FrameReader)}: {message}");
         }
 
-        public IReadOnlyCollection<Frame2> ReadFromSequence(ref ReadOnlySequence<byte> buffer)
+        public IReadOnlyCollection<Frame> ReadFromSequence(ref ReadOnlySequence<byte> buffer)
         {
             const byte START_FLAG = 0x7E;
             var sequenceReader = new SequenceReader<byte>(buffer);
-            var frames = new List<Frame2>();
+            var frames = new List<Frame>();
             long totallyConsumed = 0;
 
             while (sequenceReader.Remaining > 0)
@@ -143,7 +143,7 @@ namespace HANReader.Core
                     //Advance past the frame check sequence and the end flag (7E)
                     sequenceReader.Advance(3);
                     totallyConsumed = sequenceReader.Consumed;
-                    frames.Add(new Frame2(timeStamp, frameSize, payload));
+                    frames.Add(new Frame(timeStamp, frameSize, payload));
                 }
             }
 

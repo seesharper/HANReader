@@ -41,10 +41,10 @@ namespace HANReader.Tests
             (await ReadFrames(singleByteStream)).Should().HaveCount(expectedNumberOfFrames);
         }
 
-        private static async Task<Frame2[]> ReadFrames(Stream stream)
+        private static async Task<Frame[]> ReadFrames(Stream stream)
         {
-            var streamReader = new HANStreamReader(Console.Error);
-            var allFrames = new List<Frame2>();
+            var streamReader = new Core.StreamReader(Console.Error);
+            var allFrames = new List<Frame>();
             await streamReader.StartAsync(stream, async (frames) =>
             {
                 allFrames.AddRange(frames);

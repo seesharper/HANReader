@@ -26,7 +26,7 @@ namespace HANReader
 
             app.OnExecuteAsync(async token =>
             {
-                var reader = new HANStreamReader(Console.Error);
+                var reader = new StreamReader(Console.Error);
                 var serialPortName = serialPortNameArgument.Value;
                 var baudRate = baudRateOption.HasValue() ? baudRateOption.ParsedValue : 2400;
                 var parity = parityOption.HasValue() ? Enum.Parse<Parity>(parityOption.ParsedValue, ignoreCase: true) : Parity.None;
