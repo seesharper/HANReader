@@ -1,14 +1,12 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Version>0.0.4</Version>
     <DebugType>embedded</DebugType>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="System.IO.PipeLines" Version="4.7.2" />
+    <PackageReference Include="System.IO.PipeLines" Version="6.0.0-rc.1.21451.13 " />
   </ItemGroup>
-
 </Project>

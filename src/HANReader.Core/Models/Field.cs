@@ -12,10 +12,7 @@ namespace HANReader.Core.Models
     {
         private readonly T value;
 
-        protected Field(T value)
-        {
-            this.value = value;
-        }
+        protected Field(T value) => this.value = value;
 
         public T Value => value;
     }

@@ -1,107 +1,55 @@
 using System;
-using System.Linq;
-using System.Text.Json;
+using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using FluentAssertions;
 using HANReader.Core;
-using Newtonsoft.Json;
+using HANReader.Core.Models;
 using Xunit;
+using static HANReader.Tests.TestData;
 
 namespace HANReader.Tests
 {
     public class HANSerialPortReaderTests
     {
-        private string fullFrame = "AA 7E A0 79 01 02 01 10 80 93 E6 E7 00 0F 40 00 00 00 09 0C 07 E4 08 0B 02 0D 36 28 FF 80 00 00 02 0D 09 07 4B 46 4D 5F 30 30 31 09 10 36 39 37 30 36 33 31 34 30 33 30 38 32 38 30 39 09 08 4D 41 33 30 34 48 33 45 06 00 00 08 2D 06 00 00 00 00 06 00 00 00 DA 06 00 00 00 00 06 00 00 07 86 06 00 00 1D 25 06 00 00 1A D3 06 00 00 09 74 06 00 00 00 00 06 00 00 09 6F 88 8B 7E";
+        [Fact]
+        public async Task ShouldHandleFullFrame() =>
+            await AssertNumberOfFrames(FullFrame, expectedNumberOfFrames: 1);
 
         [Fact]
-        public async Task ShouldReadFromStream()
+        public async Task ShouldHandleTwoFullFrames() =>
+           await AssertNumberOfFrames($"{FullFrame} {FullFrame}", expectedNumberOfFrames: 2);
+
+        [Fact]
+        public async Task ShouldHandleFullFrameWithInvalidHeaderChecksumFollowedByValidFrame() =>
+            await AssertNumberOfFrames($"{FullFrameWithInvalidHeaderChecksum} {FullFrame}", expectedNumberOfFrames: 1);
+
+        [Fact]
+        public async Task ShouldHandleRubbishFollowedByValidFrame() =>
+            await AssertNumberOfFrames($"{Rubbish} {FullFrame}", expectedNumberOfFrames: 1);
+
+        [Fact]
+        public async Task ShouldHandleEndflagFollowedByValidFrame() =>
+            await AssertNumberOfFrames($"{StartFlag} {FullFrame}", expectedNumberOfFrames: 1);
+
+        private static async Task AssertNumberOfFrames(string data, int expectedNumberOfFrames)
         {
-
-            var firstframe = ByteHelper.CreateByteArray(fullFrame);
-            var secondFrame = ByteHelper.CreateByteArray(fullFrame);
-            TestStream testStream = new TestStream();
-            var writeTask = Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                //testStream.Write(firstframe.ToArray());
-                testStream.Write(firstframe);
-                await Task.Delay(500);
-                testStream.Write(secondFrame);
-                await Task.Delay(500);
-                testStream.Write(Array.Empty<byte>());
-            });
-
-
-
-
-
-            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
-
-            var readerTask = reader.StartAsync(testStream, frame =>
-            {
-                Console.WriteLine(JsonConvert.SerializeObject(frame));
-            });
-
-            await Task.WhenAll(writeTask, readerTask);
+            var bytes = ByteHelper.CreateByteArray(data);
+            var memoryStream = new MemoryStream(bytes);
+            (await ReadFrames(memoryStream)).Should().HaveCount(expectedNumberOfFrames);
+            var singleByteStream = new SingleByteStream(bytes);
+            (await ReadFrames(singleByteStream)).Should().HaveCount(expectedNumberOfFrames);
         }
 
-
-        [Fact]
-        public async Task ShouldHandleGettinIncompleteFrame()
+        private static async Task<Frame[]> ReadFrames(Stream stream)
         {
-            var fullFrameBytes = ByteHelper.CreateByteArray(fullFrame);
-
-            var secondPart = fullFrameBytes[10..];
-
-            TestStream testStream = new TestStream();
-
-            var writeTask = Task.Run(async () =>
+            var streamReader = new Core.StreamReader(Console.Error);
+            var allFrames = new List<Frame>();
+            await streamReader.StartAsync(stream, async (frames) =>
             {
-                var firstPart = fullFrameBytes[0..10];
-                await Task.Delay(500);
-                testStream.Write(firstPart, 0, firstPart.Length);
-                await Task.Delay(500);
-                testStream.Write(secondPart, 0, secondPart.Length);
-                await Task.Delay(500);
-                testStream.Write(Array.Empty<byte>());
+                allFrames.AddRange(frames);
             });
-
-            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
-
-            var readerTask = reader.StartAsync(testStream, frame =>
-           {
-               Console.WriteLine(JsonConvert.SerializeObject(frame));
-           });
-
-            await Task.WhenAll(writeTask, readerTask);
-        }
-
-        [Fact]
-        public async Task ShouldHandleRubbishAndThenCompleteFrame()
-        {
-            var rubbish = new byte[] { 1, 2, 3, 4 };
-            var fullFrameBytes = ByteHelper.CreateByteArray(fullFrame);
-            TestStream testStream = new();
-
-            var writeTask = Task.Run(async () =>
-            {
-                await Task.Delay(500);
-                testStream.Write(rubbish, 0, rubbish.Length);
-                await Task.Delay(500);
-                testStream.Write(fullFrameBytes, 0, fullFrameBytes.Length);
-                await Task.Delay(500);
-                testStream.Write(fullFrameBytes, 0, fullFrameBytes.Length);
-                await Task.Delay(500);
-                testStream.Write(Array.Empty<byte>());
-            });
-
-            var reader = new HANSerialPortReader(new FrameReader(new HeaderReader(new Crc16CyclicRedundancyChecker()), new Crc16CyclicRedundancyChecker(), new DateTimeReader(), new PayloadReader()));
-
-            var readerTask = reader.StartAsync(testStream, frame =>
-           {
-               Console.WriteLine(JsonConvert.SerializeObject(frame));
-           });
-
-            await Task.WhenAll(writeTask, readerTask);
+            return allFrames.ToArray();
         }
     }
 }
