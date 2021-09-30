@@ -101,19 +101,44 @@
     ],
     "description": "public interface"
   },
+  "public enum": {
+    "prefix": "pe",
+    "body": [
+      "namespace ${TM_DIRECTORY/(.*src.)|(src.*)|([\\/])/${2}${3:+.}/g}",
+      "{",
+      "    public enum ${TM_FILENAME/(.*)\\..+$/$1/}",
+      "    {        ",
+      "    }",
+      "}"
+    ],
+    "description": "public enum"
+  },
   "public async method": {
     "prefix": "pas",
-    "body": ["public async Task ${1:Method}()", "{", "}"],
+    "body": [
+      "public async Task ${1:Method}()",
+      "{",
+      "}"
+    ],
     "description": "public async method"
   },
   "test method": {
     "prefix": "tm",
-    "body": ["[Fact]", "public async Task ${1:Method}()", "{", "}"],
+    "body": [
+      "[Fact]",
+      "public async Task ${1:Method}()",
+      "{",
+      "}"
+    ],
     "description": "test method"
   },
   "public method": {
     "prefix": "pm",
-    "body": ["public void ${1:Method}()", "{", "}"],
+    "body": [
+      "public void ${1:Method}()",
+      "{",
+      "}"
+    ],
     "description": "public void method"
   }
 }
