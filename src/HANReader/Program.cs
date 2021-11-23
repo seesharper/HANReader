@@ -20,13 +20,19 @@ namespace HANReader
             var parityOption = app.Option<string>("-p | --parity", "Specifies the serial port parity. Default value is 'none'", CommandOptionType.SingleValue, o => o.Accepts(vb => vb.Values("none", "odd", "even", "mark", "space")));
             var databitsOption = app.Option<int>("-db | --databits", "Specifies the serial port databits. Default value is '8'", CommandOptionType.SingleValue);
             var stopbitsOption = app.Option<string>("-sb | --stopbits", "Specifies the serial port stop bits, Default values is 'one'", CommandOptionType.SingleValue, o => o.Accepts(vb => vb.Values("none", "one", "two", "onepointfive")));
+            var waitTimeOption = app.Option<int>("-w | --wait", "Specifies the number of milliseconds to wait between each read from the serial port. Default value is 1000ms", CommandOptionType.SingleValue);
+            var minimalbufferOption = app.Option<int>("-mb | --minimal-buffer", "Specifies the minimal number of bytes to read before trying to parse a frame. The default is 16 bytes", CommandOptionType.SingleValue);
             app.HelpOption("-h|--help");
 
             app.VersionOption("-v | --version", GetCurrentVersion());
 
             app.OnExecuteAsync(async token =>
             {
-                var reader = new StreamReader(Console.Error);
+                var waitTime = waitTimeOption.HasValue() ? waitTimeOption.ParsedValue : StreamReaderOptions.Default.WaitTime;
+                var minimalBuffer = minimalbufferOption.HasValue() ? minimalbufferOption.ParsedValue : StreamReaderOptions.Default.MinimumBuffer;
+                var streamReaderOptions = new StreamReaderOptions(waitTime, minimalBuffer);
+
+                var reader = new StreamReader(Console.Error, streamReaderOptions);
                 var serialPortName = serialPortNameArgument.Value;
                 var baudRate = baudRateOption.HasValue() ? baudRateOption.ParsedValue : 2400;
                 var parity = parityOption.HasValue() ? Enum.Parse<Parity>(parityOption.ParsedValue, ignoreCase: true) : Parity.None;

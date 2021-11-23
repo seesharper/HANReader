@@ -43,7 +43,7 @@ namespace HANReader.Tests
 
         private static async Task<Frame[]> ReadFrames(Stream stream)
         {
-            var streamReader = new Core.StreamReader(Console.Error);
+            var streamReader = new Core.StreamReader(Console.Error, StreamReaderOptions.Default with { WaitTime = 0 });
             var allFrames = new List<Frame>();
             await streamReader.StartAsync(stream, async (frames) =>
             {

@@ -13,11 +13,13 @@ namespace HANReader.Core
         private readonly Action<string> _log;
 
         private readonly FrameReader _HANSequenceReader;
+        private readonly StreamReaderOptions _options;
 
-        public StreamReader(TextWriter log)
+        public StreamReader(TextWriter log, StreamReaderOptions options)
         {
             _log = (message) => log.WriteLine($"{nameof(StreamReader)}: {message}");
             _HANSequenceReader = new FrameReader(log);
+            _options = options;
         }
 
         public async Task StartAsync(Stream stream, Func<Frame[], Task> processFrame = null)
@@ -26,7 +28,8 @@ namespace HANReader.Core
 
             while (true)
             {
-                ReadResult readResult = await reader.ReadAsync();
+                await Task.Delay(_options.WaitTime);
+                ReadResult readResult = await reader.ReadAtLeastAsync(_options.MinimumBuffer);
                 ReadOnlySequence<byte> buffer = readResult.Buffer;
                 _log($"Read {readResult.Buffer.Length} from {nameof(ReadResult.Buffer)}");
 
