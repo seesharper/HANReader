@@ -12,7 +12,7 @@ Step test = () => DotNet.Test();
 [StepDescription("Creates all artifacts")]
 Step pack = () =>
 {
-    //test();
+    test();
     codecoverage();
     DotNet.Pack();
     DotNet.Publish();
